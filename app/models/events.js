@@ -17,4 +17,4 @@ var Events = new Schema({
 
 });
 
-module.exports = mongoose.modesl('Events', Events);
+module.exports = mongoose.model('Events', Events);

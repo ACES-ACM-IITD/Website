@@ -13,4 +13,4 @@ var Team = new Schema({
     }
 });
 
-module.exports = mongoose.modesl('Team', Team);
+module.exports = mongoose.model('Team', Team);

@@ -18,4 +18,4 @@ var User = new Schema({
     }
 });
 
-module.exports = mongoose.modesl('User', User);
+module.exports = mongoose.model('User', User);
