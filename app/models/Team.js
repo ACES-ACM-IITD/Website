@@ -8,7 +8,7 @@ var Team = new Schema({
     year: {
         position: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Events'
+            ref: 'User'
         }
     }
 });
