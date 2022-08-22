@@ -17,9 +17,12 @@ var User = require('./app/models/users.js');
 var app = express();
 require('dotenv').load();
 
-mongoose.connect(process.env.MONGO_URI,{
-    useMongoClient: true,
-});
+mongoose.connect(process.env.MONGO_URI,{useNewUrlParser: true, useUnifiedTopology: true }
+).then(() => {
+    console.log("Connected to Database");
+    }).catch((err) => {
+        console.log("Not Connected to Database ERROR! ", err);
+    });;
 mongoose.Promise = global.Promise;
 
 

@@ -23,6 +23,7 @@
   "author": "DevClub-IITD",
   "license": "MIT",
   "dependencies": {
+    "async": "^3.2.4",
     "bcrypt": "^5.0.1",
     "body-parser": "",
     "dotenv": "^1.2.0",
@@ -33,11 +34,15 @@
     "file-system": "^2.2.2",
     "mongodb": "^2.2.31",
     "mongoose": "^5.9.6",
-    "morgan": "^1.9.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
     "nodemailer": "^4.1.0",
     "passport": "^0.3.0",
     "passport-github": "^1.0.0",
     "unzip": "^0.1.11",
     "winston": "^2.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
   }
 }

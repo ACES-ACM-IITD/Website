@@ -6,7 +6,11 @@ var galleryController = require('../controllers/galleryController.js');
 var userController = require('../controllers/userController.js');
 var unzip = require('unzip');
 var logger = require('../../logger');
-
+const bcrypt = require("bcrypt");
+const multer  = require('multer')
+var User = require('../models/users.js');
+var Event = require('../models/events.js');
+const upload=multer({dest: '/public/uploads'})
 module.exports = function(app, fs) {
 
 	function isLoggedIn(req, res, next) {
@@ -280,4 +284,41 @@ module.exports = function(app, fs) {
 			else
 				res.redirect('/admin');
 		});
+	app.route('/adduser')
+	.post( async function(req,res, next){
+		try {
+			const user = new User(req.body);
+			user.save()
+			res.json(user);
+		} catch (error) {
+			console.log("error");
+			res.json(error);
+			
+		}
+		
+	});
+	app.route('addevent').
+	post(adminAuth, async function(req,res){
+		try {
+			const event = new Event(req.body);
+			user.save()
+			res.json(event);
+		} catch (error) {
+			console.log("error");
+			res.json(error);
+			
+		}
+	})
+	app.route('addteam').
+	post(adminAuth, async function(req,res){
+		try {
+			const event = new User(req.body);
+			user.save()
+			res.json(event);
+		} catch (error) {
+			console.log("error");
+			res.json(error);
+			
+		}
+	})
 };
