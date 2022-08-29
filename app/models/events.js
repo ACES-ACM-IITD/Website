@@ -8,7 +8,7 @@ var Events = new Schema({
 
     year: {
         date: Date,
-        event_name: String,
+        name: String,
         description: String,
         gallery: [{ imageurl: String }],
 

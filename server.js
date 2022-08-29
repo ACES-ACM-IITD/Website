@@ -7,16 +7,14 @@ var mongoose = require('mongoose');
 var passport = require('passport');
 var session = require('express-session');
 var nodemailer = require('nodemailer');
-var fileUpload = require('express-fileupload');
 var fs = require('fs');
-var bcrypt = require('bcrypt');
 var morgan = require('morgan');
 var User = require('./app/models/users.js');
-
-
+var path = require('path');
+var fs = require('fs');
 var app = express();
 require('dotenv').load();
-
+var busboy_dep = require('connect-busboy')
 mongoose.connect(process.env.MONGO_URI,{useNewUrlParser: true, useUnifiedTopology: true }
 ).then(() => {
     console.log("Connected to Database");
@@ -24,8 +22,26 @@ mongoose.connect(process.env.MONGO_URI,{useNewUrlParser: true, useUnifiedTopolog
         console.log("Not Connected to Database ERROR! ", err);
     });;
 mongoose.Promise = global.Promise;
+//...
+// app.use(express.bodyParser({ keepExtensions: true, uploadDir: "uploads" }));                     
+// app.engine('pug', require('pug').__express);                                                   
 
+// app.post("/upload", function (request, response) {                                               
+//     // request.files will contain the uploaded file(s),                                          
+//     // keyed by the input name (in this case, "file")                                            
 
+//     // show the uploaded file name                                                               
+//     console.log("file name", request.files.file.name);                                           
+//     console.log("file path", request.files.file.path);                                           
+
+//     response.end("upload complete");                                                             
+// });                                                                                              
+
+// // render file upload form                                                                       
+// app.get("/", function (request, response) {                                                      
+//     response.render("upload_form.pug");                                                         
+// });               
+ 
 // set the view engine to ejs
 app.set('view engine', 'ejs');
 
@@ -36,9 +52,8 @@ app.use(session({
 	secret: '2C44-4D44-WppQ38S',
 	resave: false, // change to true
 	saveUninitialized: true
-}));
-app.use(fileUpload({ safeFileNames: true, preserveExtension: true }));
-
+}));         
+app.engine('pug', require('pug').__express);                                              
 // logging mechanism
 app.use(morgan('dev', {
     skip: function (req, res) {
@@ -50,12 +65,12 @@ app.use(morgan('dev', {
         return res.statusCode >= 400;
     }, stream: process.stdout
 }));
-
+app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.urlencoded({
 	extended: true
 }));
 app.use(bodyParser.json());
-
+bodyParser.json([]);
 
 routes(app, fs);
 

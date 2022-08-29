@@ -10,7 +10,7 @@ var UserSchema = new Schema({
     username: { type: String, required: true, index: { unique: true } },
     password: { type: String, required: true },
     email: { type: String, required: true },
-    profile_pic: String,
+    profile_pic: {type: String},
     contact: { type: Number, required: true },
     profiles: {
         fb_profile: String,

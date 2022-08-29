@@ -1,17 +1,43 @@
-'use strict';
-
+"use strict";
+const util = require('util');
+global.TextEncoder = util.TextEncoder;
+global.TextDecoder = util.TextDecoder;
 var path = process.cwd();
 var contactFormMailer = require('../controllers/contactFormMailer.js');
 var galleryController = require('../controllers/galleryController.js');
 var userController = require('../controllers/userController.js');
 var unzip = require('unzip');
 var logger = require('../../logger');
-const bcrypt = require("bcrypt");
-const multer  = require('multer')
 var User = require('../models/users.js');
 var Event = require('../models/events.js');
-const upload=multer({dest: '/public/uploads'})
+var Team = require('../models/team.js');
+
 module.exports = function(app, fs) {
+
+	
+const multer = require('multer');
+const storage = multer.diskStorage({
+	destination: function(req, file, cb) {
+	  cb(null, '/public/uploads/');
+	},
+	filename: function(req, file, cb) {
+	  cb(null, new Date().toISOString() + file.originalname);
+	}
+  });
+  
+  const fileFilter = (req, file, cb) => {
+	// reject a file
+	if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+	  cb(null, true);
+	} else {
+	  cb(null, false);
+	}
+  };
+  
+  const upload = multer({
+	storage: storage,
+	fileFilter: fileFilter
+  });
 
 	function isLoggedIn(req, res, next) {
 		if (req.isAuthenticated()) {
@@ -284,12 +310,15 @@ module.exports = function(app, fs) {
 			else
 				res.redirect('/admin');
 		});
-	app.route('/adduser')
-	.post( async function(req,res, next){
+	app.post('/adduser', upload.single('profile_pic'), async function(req,res){
 		try {
 			const user = new User(req.body);
-			user.save()
-			res.json(user);
+			console.log(user)
+			if(req.file){
+				user.profile_pic = req.file.tempFilePath;
+			}
+			await user.save()
+			res.json("User added successfully");
 		} catch (error) {
 			console.log("error");
 			res.json(error);
@@ -297,11 +326,11 @@ module.exports = function(app, fs) {
 		}
 		
 	});
-	app.route('addevent').
+	app.route('/addevent').
 	post(adminAuth, async function(req,res){
 		try {
 			const event = new Event(req.body);
-			user.save()
+			event.save()
 			res.json(event);
 		} catch (error) {
 			console.log("error");
@@ -309,12 +338,39 @@ module.exports = function(app, fs) {
 			
 		}
 	})
-	app.route('addteam').
-	post(adminAuth, async function(req,res){
+	app.route(adminAuth, '/addteamhere').
+	post(async function(req,res){
 		try {
-			const event = new User(req.body);
-			user.save()
-			res.json(event);
+			const yearobj = await Team.findOne({ year: req.body.year});
+			const curr_user=await User.findOne({name : req.body.name});
+			if(curr_user==null)
+			{
+				res.json("current user not registered: error")
+			}
+			if(yearobj==null)
+			{
+				const obj=new Team({year : req.body.year, positions : [{position_name: req.body.position_name, people : [curr_user]}]});
+				await obj.save()
+				res.json("Data saved successfully")
+			}
+			else
+			{
+				const porobj = await Team.findOne({$and:[{year : req.body.year},{positions: {$elemMatch: {position_name: req.body.position_name}}}]})
+				if(porobj!=null)
+				{
+					const item = porobj.positions.find(item=>item.position_name, req.body.position_name);
+					item.people.push(curr_user)
+					await porobj.save()
+					res.json("Data saved successfully1")
+				}
+				else
+				{
+					yearobj.positions.push({position_name: req.body.position_name, people : [curr_user]});
+					await yearobj.save()
+					res.json("Data saved successfully2")
+				}
+					
+			}
 		} catch (error) {
 			console.log("error");
 			res.json(error);

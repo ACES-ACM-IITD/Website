@@ -4,13 +4,11 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var Team = new Schema({
-    _id: mongoose.Schema.Types.ObjectId,
-    year: {
-        position: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
-        }
-    }
+    year: { type: Number, required: true },
+    positions: [{
+        position_name: { type: String, required: true},
+        people : [{ type: Schema.Types.ObjectId, ref: 'User' }]
+    }]
 });
 
 module.exports = mongoose.model('Team', Team);
