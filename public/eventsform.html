@@ -68,9 +68,8 @@ body {font-family: Arial, Helvetica, sans-serif;}
 <button class="open-button" onclick="openForm()">Add An Event</button>
 
 <div class="form-popup" id="myForm">
-  <form action="/action_page.php" class="form-container" method="get">
+  <form action="/addevent" class="form-container" method="post">
     <h1>Add Event</h1>
-
     <label for="name"><b>Event Name</b></label>
     <input type="text" placeholder="Event Name" name="name" required>
     
@@ -82,10 +81,8 @@ body {font-family: Arial, Helvetica, sans-serif;}
     <input type="file" placeholder="Event Gallery" name="gallery" required multiple>
     <br>
     <br>
-    
     <label for="description"><b>Event Description</b></label>
     <input type="text" placeholder="Event Description" name="description" required>
-
     <button type="submit" class="btn">Submit</button>
     <button type="button" class="btn cancel" onclick="closeForm()">Close</button>
     
