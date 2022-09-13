@@ -294,6 +294,10 @@ function isLoggedIn(req, res, next) {
 		}
 		
 	});
+	app.route('/adduser').get(adminAuth, async function(req,res){
+		const users=await User.find()
+		res.json(users)
+	})
 	app.route('/addevent').
 	post(async function(req,res){
 		try {
