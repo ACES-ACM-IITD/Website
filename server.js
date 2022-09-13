@@ -22,11 +22,7 @@ mongoose.connect(process.env.MONGO_URI,{useNewUrlParser: true, useUnifiedTopolog
         console.log("Not Connected to Database ERROR! ", err);
     });;
 mongoose.Promise = global.Promise;
-//...
-// app.use(express.bodyParser({ keepExtensions: true, uploadDir: "uploads" }));                     
-// app.engine('pug', require('pug').__express);                                                   
-
-// app.post("/upload", function (request, response) {                                               
+//...                               
 //     // request.files will contain the uploaded file(s),                                          
 //     // keyed by the input name (in this case, "file")                                            
 
@@ -37,11 +33,6 @@ mongoose.Promise = global.Promise;
 //     response.end("upload complete");                                                             
 // });                                                                                              
 
-// // render file upload form                                                                       
-// app.get("/", function (request, response) {                                                      
-//     response.render("upload_form.pug");                                                         
-// });               
- 
 // set the view engine to ejs
 app.set('view engine', 'ejs');
 
@@ -53,8 +44,7 @@ app.use(session({
 	resave: false, // change to true
 	saveUninitialized: true
 }));         
-app.engine('pug', require('pug').__express);                                              
-// logging mechanism
+
 app.use(morgan('dev', {
     skip: function (req, res) {
         return res.statusCode < 400;

@@ -11,35 +11,13 @@ var logger = require('../../logger');
 var User = require('../models/users.js');
 var Event = require('../models/events.js');
 var Team = require('../models/team.js');
-
+const formidable=require("formidable")
+const path1=require("path");
+const { events } = require('../models/users.js');
 module.exports = function(app, fs) {
 
-	
-const multer = require('multer');
-const storage = multer.diskStorage({
-	destination: function(req, file, cb) {
-	  cb(null, '/public/uploads/');
-	},
-	filename: function(req, file, cb) {
-	  cb(null, new Date().toISOString() + file.originalname);
-	}
-  });
   
-  const fileFilter = (req, file, cb) => {
-	// reject a file
-	if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-	  cb(null, true);
-	} else {
-	  cb(null, false);
-	}
-  };
-  
-  const upload = multer({
-	storage: storage,
-	fileFilter: fileFilter
-  });
-
-	function isLoggedIn(req, res, next) {
+function isLoggedIn(req, res, next) {
 		if (req.isAuthenticated()) {
 			return next();
 		}
@@ -209,26 +187,7 @@ const storage = multer.diskStorage({
 	// 		else
 	// 			res.redirect('/admin');
 	// 	});
-	app.route('/users')
-		.get(adminAuth, function(req, res) {
-			userController.allUsers().then(function(docs) {
-				var users = docs;
-				users.password = '';
-				res.send(users);
-			});
-		})
-		.post(adminAuth, function(req, res) {
-			req.files.pic.mv(path + '/public/team_pics/' + req.body.username + '_' + req.files.pic.name, function(err) {
-				if (err)
-					return res.status(500).send(err);
-				logger.info('User added by= ' + req.session.user + ' username= ' + req.body.username);
-				userController.addUser(req.body, '/team_pics/' + req.body.username + '_' + req.files.pic.name);
-				if (req.session.president)
-					res.redirect('/president');
-				else
-					res.redirect('/admin');
-			});
-		});
+
 	app.route('/user_del')
 		.get(adminAuth, function(req, res) {
 			logger.info('User deleted by= ' + req.session.user);
@@ -237,10 +196,6 @@ const storage = multer.diskStorage({
 				res.redirect('/president');
 			else
 				res.redirect('/admin');
-		});
-	app.route('/user')
-		.get(auth, function(req, res) {
-			res.render(path + '/public/user');
 		});
 	// app.route('/bank')
 	// 	.post(adminAuth, function(req, res) {
@@ -310,15 +265,28 @@ const storage = multer.diskStorage({
 			else
 				res.redirect('/admin');
 		});
-	app.post('/adduser', upload.single('profile_pic'), async function(req,res){
+	app.route('/adduser').post(adminAuth, async function(req,res){
 		try {
-			const user = new User(req.body);
-			console.log(user)
-			if(req.file){
-				user.profile_pic = req.file.tempFilePath;
-			}
-			await user.save()
-			res.json("User added successfully");
+			const form = new formidable.IncomingForm();
+
+    	form.parse(req, async function(err, fields, files){
+		console.log(fields)
+		console.log(files)
+		
+		const user = new User(fields);
+        var oldPath = files.profile_pic.filepath;
+		console.log(__dirname)
+        var newPath = path1.join(__dirname, '/../../upload')+ '/'+fields.username
+        var rawData = fs.readFileSync(oldPath)
+        fs.writeFile(newPath, rawData, function(err){
+            if(err){console.log(err); return res.json({err: true})}
+            
+        })
+		user.profile_pic=newPath;
+		console.log(user)
+		await user.save()
+		res.json({err: false, msg: "Successfully uploaded user"})
+  })
 		} catch (error) {
 			console.log("error");
 			res.json(error);
@@ -327,22 +295,52 @@ const storage = multer.diskStorage({
 		
 	});
 	app.route('/addevent').
-	post(adminAuth, async function(req,res){
+	post(async function(req,res){
 		try {
-			const event = new Event(req.body);
-			event.save()
-			res.json(event);
+			const form = new formidable.IncomingForm({
+				multiples: true,
+				keepExtensions: true,
+			  });
+			console.log(form)
+    		form.parse(req, async function(err, fields, files){
+			console.log(files)
+			const event = new Event()
+			event.name=fields.name
+			event.description=fields.description
+			event.date=Date.parse(fields.date)
+			let sz= files.gallery.length
+			console.log("size is ", sz)
+			for(let i=0;i<sz;i++)
+			{	const newobj={};
+				var oldPath = (files.gallery)[i].filepath;
+				var newPath = path1.join(__dirname, '/../../upload')+ '/'+(files.gallery)[i].originalFilename
+				var rawData = fs.readFileSync(oldPath)
+				fs.writeFile(newPath, rawData, function(err){
+					if(err){console.log(err); return res.json({err: true})}
+					
+				})
+				newobj.imageUrl=newPath
+				event.gallery.push(newobj)
+			}
+		console.log(event)
+		await event.save()
+		res.json({err: false, msg: "Successfully uploaded event"})
+  })
 		} catch (error) {
 			console.log("error");
 			res.json(error);
 			
 		}
 	})
-	app.route(adminAuth, '/addteamhere').
+	app.route('/addevent').get(async function (req,res){
+		const eventobj=await Event.find();
+		res.json(eventobj)
+	})
+	app.route(adminAuth, '/addteam').
 	post(async function(req,res){
 		try {
 			const yearobj = await Team.findOne({ year: req.body.year});
-			const curr_user=await User.findOne({name : req.body.name});
+			const curr_user=await User.findOne({email : req.body.email});
 			if(curr_user==null)
 			{
 				res.json("current user not registered: error")
@@ -376,5 +374,40 @@ const storage = multer.diskStorage({
 			res.json(error);
 			
 		}
+	})
+	app.route("/addteam").get(adminAuth, async function(req,res){
+		const teamobj=await Team.find()
+		const sz=teamobj.length
+		const cleanedobj = []
+		console.log(teamobj)
+		for(let i=0;i<sz;i++)
+		{
+			const newobj={}
+			newobj.year=teamobj[i].year
+			newobj.positions=[]
+			let j= teamobj[i].positions.length
+			for(let k =0;k<j;k++)
+			{
+				const secnewobj={}
+				secnewobj.position_name=teamobj[i].positions[k].position_name;
+				secnewobj.people=[]
+				let l = teamobj[i].positions[k].people.length;
+				console.log("iterating over ", teamobj[i].year, " and " , teamobj[i].positions[k].position_name, " with strength ", l)
+				for(let p=0;p<l;p++)
+				{
+					console.log("searching for ", teamobj[i].positions[k].people[p])
+					const user = await User.findOne({_id: teamobj[i].positions[k].people[p]})
+					console.log(user)
+					if(user!=null)
+					{
+						secnewobj.people.push(user.name)
+					}
+					
+				}
+				newobj.positions.push(secnewobj)
+			}
+			cleanedobj.push(newobj)
+		}
+		res.json(cleanedobj)
 	})
 };
