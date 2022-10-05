@@ -14,6 +14,7 @@ var Team = require('../models/team.js');
 const formidable=require("formidable")
 const path1=require("path");
 const { events } = require('../models/users.js');
+const { stringify } = require('querystring');
 module.exports = function(app, fs) {
 
   
@@ -25,7 +26,13 @@ function isLoggedIn(req, res, next) {
 			res.redirect('/login');
 		}
 	}
-
+function renameFile(oldPath, newPath){
+	var rawData = fs.readFileSync(oldPath)
+        fs.writeFile(newPath, rawData, function(err){
+            if(err){return res.json({err: true})}
+            
+        })
+}
 	// Authentication and Authorization Middleware
 	var auth = function(req, res, next) {
 		if (req.session && req.session.user)
@@ -265,31 +272,30 @@ function isLoggedIn(req, res, next) {
 			else
 				res.redirect('/admin');
 		});
-	app.route('/adduser').post(adminAuth, async function(req,res){
+	app.route('/adduser').post(async function(req,res){
 		try {
 			const form = new formidable.IncomingForm();
 
     	form.parse(req, async function(err, fields, files){
-		console.log(fields)
-		console.log(files)
-		
 		const user = new User(fields);
         var oldPath = files.profile_pic.filepath;
-		console.log(__dirname)
-        var newPath = path1.join(__dirname, '/../../upload')+ '/'+fields.username
-        var rawData = fs.readFileSync(oldPath)
-        fs.writeFile(newPath, rawData, function(err){
-            if(err){console.log(err); return res.json({err: true})}
-            
-        })
+		const extension=files.profile_pic.mimetype.split('/')
+		const fname=fields.username+'.'+extension[1]
+        var newPath = path1.join(__dirname, '/../../upload', fname)
+        renameFile(oldPath,newPath)
 		user.profile_pic=newPath;
-		console.log(user)
-		await user.save()
-		res.json({err: false, msg: "Successfully uploaded user"})
+		const check_for_duplicates = await User.findOne({username : fields.username})
+		if(check_for_duplicates==null){
+			await user.save().catch
+			res.json({err: false, msg: "Successfully uploaded user"})
+		}
+		else{
+			res.json({err: true, msg: "User already in database"})
+		}
+		
   })
 		} catch (error) {
-			console.log("error");
-			res.json(error);
+			res.json({err: true});
 			
 		}
 		
@@ -298,40 +304,36 @@ function isLoggedIn(req, res, next) {
 		const users=await User.find()
 		res.json(users)
 	})
-	app.route('/addevent').
-	post(async function(req,res){
+	app.route('/addevent').post(async function(req,res){
 		try {
 			const form = new formidable.IncomingForm({
 				multiples: true,
-				keepExtensions: true,
 			  });
-			console.log(form)
     		form.parse(req, async function(err, fields, files){
-			console.log(files)
-			const event = new Event()
-			event.name=fields.name
-			event.description=fields.description
-			event.date=Date.parse(fields.date)
+			const event = new Event(fields)
+			var idstr=event._id.toString()
+			event.gallery=[]
+			// event.date=Date.parse(fields.date)
+			const arr=files.gallery
 			let sz= files.gallery.length
-			console.log("size is ", sz)
-			for(let i=0;i<sz;i++)
-			{	const newobj={};
-				var oldPath = (files.gallery)[i].filepath;
-				var newPath = path1.join(__dirname, '/../../upload')+ '/'+(files.gallery)[i].originalFilename
-				var rawData = fs.readFileSync(oldPath)
-				fs.writeFile(newPath, rawData, function(err){
-					if(err){console.log(err); return res.json({err: true})}
-					
-				})
+			const dir = path1.resolve(path1.join(__dirname, `/../../upload/${idstr}`))
+			if (!fs.existsSync(dir)) {
+				fs.mkdirSync(dir);
+			  }
+			arr.forEach((element, index)=>{
+				var newobj={}
+				var oldPath=element.filepath
+				const fname=index.toString()+'.'+ element.mimetype.split('/')[1]
+				var newPath = path1.join(__dirname, `/../../upload/${idstr}`, fname)
+				renameFile(oldPath,newPath)
 				newobj.imageUrl=newPath
 				event.gallery.push(newobj)
-			}
-		console.log(event)
-		await event.save()
-		res.json({err: false, msg: "Successfully uploaded event"})
+			})
+			await event.save()
+			res.json({err: false, msg: "Successfully uploaded event"})
+		
   })
 		} catch (error) {
-			console.log("error");
 			res.json(error);
 			
 		}
@@ -347,13 +349,13 @@ function isLoggedIn(req, res, next) {
 			const curr_user=await User.findOne({email : req.body.email});
 			if(curr_user==null)
 			{
-				res.json("current user not registered: error")
+				res.json({err: false, msg : "current user not registered: error"})
 			}
 			if(yearobj==null)
 			{
 				const obj=new Team({year : req.body.year, positions : [{position_name: req.body.position_name, people : [curr_user]}]});
 				await obj.save()
-				res.json("Data saved successfully")
+				res.json({err : false, msg: "Data saved successfully"})
 			}
 			else
 			{
@@ -363,19 +365,18 @@ function isLoggedIn(req, res, next) {
 					const item = porobj.positions.find(item=>item.position_name, req.body.position_name);
 					item.people.push(curr_user)
 					await porobj.save()
-					res.json("Data saved successfully1")
+					res.json({err : false, msg: "Data saved successfully"})
 				}
 				else
 				{
 					yearobj.positions.push({position_name: req.body.position_name, people : [curr_user]});
 					await yearobj.save()
-					res.json("Data saved successfully2")
+					res.json({err : false, msg: "Data saved successfully"})
 				}
 					
 			}
 		} catch (error) {
-			console.log("error");
-			res.json(error);
+			res.json({err: true});
 			
 		}
 	})
@@ -383,7 +384,6 @@ function isLoggedIn(req, res, next) {
 		const teamobj=await Team.find()
 		const sz=teamobj.length
 		const cleanedobj = []
-		console.log(teamobj)
 		for(let i=0;i<sz;i++)
 		{
 			const newobj={}
@@ -401,7 +401,6 @@ function isLoggedIn(req, res, next) {
 				{
 					console.log("searching for ", teamobj[i].positions[k].people[p])
 					const user = await User.findOne({_id: teamobj[i].positions[k].people[p]})
-					console.log(user)
 					if(user!=null)
 					{
 						secnewobj.people.push(user.name)
