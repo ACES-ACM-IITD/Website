@@ -7,21 +7,31 @@ var mongoose = require('mongoose');
 var passport = require('passport');
 var session = require('express-session');
 var nodemailer = require('nodemailer');
-var fileUpload = require('express-fileupload');
 var fs = require('fs');
-var bcrypt = require('bcrypt');
 var morgan = require('morgan');
 var User = require('./app/models/users.js');
-
-
+var path = require('path');
+var fs = require('fs');
 var app = express();
 require('dotenv').load();
-
-mongoose.connect(process.env.MONGO_URI,{
-    useMongoClient: true,
-});
+var busboy_dep = require('connect-busboy')
+mongoose.connect(process.env.MONGO_URI,{useNewUrlParser: true, useUnifiedTopology: true }
+).then(() => {
+    console.log("Connected to Database");
+    }).catch((err) => {
+        console.log("Not Connected to Database ERROR! ", err);
+    });;
 mongoose.Promise = global.Promise;
+//...                               
+//     // request.files will contain the uploaded file(s),                                          
+//     // keyed by the input name (in this case, "file")                                            
 
+//     // show the uploaded file name                                                               
+//     console.log("file name", request.files.file.name);                                           
+//     console.log("file path", request.files.file.path);                                           
+
+//     response.end("upload complete");                                                             
+// });                                                                                              
 
 // set the view engine to ejs
 app.set('view engine', 'ejs');
@@ -33,10 +43,8 @@ app.use(session({
 	secret: '2C44-4D44-WppQ38S',
 	resave: false, // change to true
 	saveUninitialized: true
-}));
-app.use(fileUpload({ safeFileNames: true, preserveExtension: true }));
+}));         
 
-// logging mechanism
 app.use(morgan('dev', {
     skip: function (req, res) {
         return res.statusCode < 400;
@@ -47,12 +55,12 @@ app.use(morgan('dev', {
         return res.statusCode >= 400;
     }, stream: process.stdout
 }));
-
+app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.urlencoded({
 	extended: true
 }));
 app.use(bodyParser.json());
-
+bodyParser.json([]);
 
 routes(app, fs);
 
